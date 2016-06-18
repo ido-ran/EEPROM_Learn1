@@ -14,63 +14,63 @@
   {
     float lat;
     float lng;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t seoncd;
+//    uint8_t hour;
+//    uint8_t minute;
+//    uint8_t seoncd;
   };
 
   int state = 0;
   bool promptShow = false;
 
-  void i2c_eeprom_write_byte( int deviceaddress, unsigned int eeaddress, byte data ) {
-    int rdata = data;
-    Wire.beginTransmission(deviceaddress);
-    Wire.write((int)(eeaddress >> 8)); // MSB
-    Wire.write((int)(eeaddress & 0xFF)); // LSB
-    Wire.write(rdata);
-    Wire.endTransmission();
-  }
+void i2c_eeprom_write_byte( int deviceaddress, unsigned int eeaddress, byte data )
+{
+  int rdata = data;
+  Wire.beginTransmission(deviceaddress);
+  Wire.write((int)(eeaddress >> 8));    // Address High Byte
+  Wire.write((int)(eeaddress & 0xFF));  // Address Low Byte
+  Wire.write(rdata);
+  Wire.endTransmission();
+}
 
-  // WARNING: address is a page address, 6-bit end will wrap around
-  // also, data can be maximum of about 30 bytes, because the Wire library has a buffer of 32 bytes
-  void i2c_eeprom_write_page( int deviceaddress, unsigned int eeaddresspage, byte* data, byte length ) {
-    Wire.beginTransmission(deviceaddress);
-    Wire.write((int)(eeaddresspage >> 8)); // MSB
-    Wire.write((int)(eeaddresspage & 0xFF)); // LSB
-    byte c;
-    for ( c = 0; c < length; c++)
-    {
-      Wire.write(data[c]);
-      delay(5);
-//      Serial.print("write to "); Serial.print(eeaddresspage + c); Serial.print(" val ");
-//      Serial.println(data[c]);
-    }
-    Wire.endTransmission();
-  }
+// Address is a page address, 6-bit (63). More and end will wrap around
+// But data can be maximum of 28 bytes, because the Wire library has a buffer of 32 bytes
+void i2c_eeprom_write_page
+( int deviceaddress, unsigned int eeaddresspage, byte* data, byte length )
+{
+  Wire.beginTransmission(deviceaddress);
+  Wire.write((int)(eeaddresspage >> 8)); // Address High Byte
+  Wire.write((int)(eeaddresspage & 0xFF)); // Address Low Byte
+  byte c;
+  for ( c = 0; c < length; c++)
+    Wire.write(data[c]);
+  Wire.endTransmission();
+  delay(10);                           // need some delay
+}
 
-  byte i2c_eeprom_read_byte( int deviceaddress, unsigned int eeaddress ) {
-    byte rdata = 0xFF;
-    Wire.beginTransmission(deviceaddress);
-    Wire.write((int)(eeaddress >> 8)); // MSB
-    Wire.write((int)(eeaddress & 0xFF)); // LSB
-    Wire.endTransmission();
-    Wire.requestFrom(deviceaddress,1);
-    if (Wire.available()) rdata = Wire.read();
-    return rdata;
-  }
+byte i2c_eeprom_read_byte( int deviceaddress, unsigned int eeaddress )
+{
+  byte rdata = 0xFF;
+  Wire.beginTransmission(deviceaddress);
+  Wire.write((int)(eeaddress >> 8));    // Address High Byte
+  Wire.write((int)(eeaddress & 0xFF));  // Address Low Byte
+  Wire.endTransmission();
+  Wire.requestFrom(deviceaddress,1);
+  if (Wire.available()) rdata = Wire.read();
+  return rdata;
+}
 
-  // maybe let's not read more than 30 or 32 bytes at a time!
-  void i2c_eeprom_read_buffer( int deviceaddress, unsigned int eeaddress, byte *buffer, int length ) {
-    Wire.beginTransmission(deviceaddress);
-    Wire.write((int)(eeaddress >> 8)); // MSB
-    Wire.write((int)(eeaddress & 0xFF)); // LSB
-    Wire.endTransmission();
-    Wire.requestFrom(deviceaddress,length);
-    int c = 0;
-    for ( c = 0; c < length; c++ )
-      if (Wire.available()) buffer[c] = Wire.read();
-  }
-
+// should not read more than 28 bytes at a time!
+void i2c_eeprom_read_buffer( int deviceaddress, unsigned int eeaddress, byte *buffer, int length )
+{
+  Wire.beginTransmission(deviceaddress);
+  Wire.write((int)(eeaddress >> 8));    // Address High Byte
+  Wire.write((int)(eeaddress & 0xFF));  // Address Low Byte
+  Wire.endTransmission();
+  Wire.requestFrom(deviceaddress,length);
+  //int c = 0;
+  for ( int c = 0; c < length; c++ )
+    if (Wire.available()) buffer[c] = Wire.read();
+}
 
 
 
@@ -130,7 +130,7 @@
         struct LocationItem v;
         i2c_eeprom_read_buffer(0x50, 2 + idx * sizeof(struct LocationItem), (byte*)&v, sizeof(v));
         Serial.print("write ["); Serial.print(idx); Serial.print("]="); 
-        Serial.print(v.lng); Serial.print(","); Serial.println(v.lat);        
+        Serial.print(v.lng); Serial.print(","); Serial.println(v.lat); //Serial.print(","); Serial.println(v.hour);
       }
       
       state = 0;
@@ -150,8 +150,9 @@
       Serial.print("read i="); Serial.println(i);
 
       struct LocationItem v;
-      v.lat = 100 + i * 5;
-      v.lng = 400 + i * 3;
+      v.lat = 100 + i * 4;
+      v.lng = 400 + i * 4;
+//      v.hour = 50 + i;
       i2c_eeprom_write_page(0x50, 2 + i*sizeof(struct LocationItem), (byte*)&v, sizeof(v));
       Serial.print("write ["); Serial.print(i); Serial.print("]="); 
       Serial.print(v.lng); Serial.print(","); Serial.println(v.lat);
@@ -174,6 +175,6 @@
     }
     Serial.println(" ");
     */
-    delay(2000);
+    delay(500);
 
   }
